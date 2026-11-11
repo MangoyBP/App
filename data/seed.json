@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "title": "Projektstruktur erkunden",
+    "description": "Frontend, API und gemeinsame Typen im Repository finden.",
+    "status": "Erledigt"
+  },
+  {
+    "id": 2,
+    "title": "Demo-App starten",
+    "description": "Vite und den Hono-Server gemeinsam ausführen.",
+    "status": "In Arbeit"
+  },
+  {
+    "id": 3,
+    "title": "Ersten Pull Request prüfen",
+    "description": "Dateiänderungen lesen und den Branch nachvollziehen.",
+    "status": "Offen"
+  }
+]
