@@ -1,23 +1,29 @@
 import { serve } from "@hono/node-server";
 import { createClient } from "@libsql/client";
-import { Hono } from "hono";
 import { readFile } from "node:fs/promises";
+import { createApp } from "./app";
 import type { Item } from "../shared/types";
 
 const database = createClient({
   url: process.env.DATABASE_URL ?? "file:data/items.db",
 });
-const app = new Hono();
-
 async function initializeDatabase() {
   await database.execute(`
     CREATE TABLE IF NOT EXISTS items (
       id INTEGER PRIMARY KEY,
       title TEXT NOT NULL,
       description TEXT NOT NULL,
-      status TEXT NOT NULL
+      status TEXT NOT NULL,
+      rating INTEGER NOT NULL DEFAULT 3 CHECK (rating BETWEEN 1 AND 5)
     )
   `);
+
+  const columns = await database.execute("PRAGMA table_info(items)");
+  if (!columns.rows.some((row) => row.name === "rating")) {
+    await database.execute(
+      "ALTER TABLE items ADD COLUMN rating INTEGER NOT NULL DEFAULT 3 CHECK (rating BETWEEN 1 AND 5)",
+    );
+  }
 
   const result = await database.execute("SELECT COUNT(*) AS total FROM items");
   if (Number(result.rows[0]?.total ?? 0) > 0) return;
@@ -28,27 +34,14 @@ async function initializeDatabase() {
 
   for (const item of seed) {
     await database.execute({
-      sql: "INSERT INTO items (id, title, description, status) VALUES (?, ?, ?, ?)",
-      args: [item.id, item.title, item.description, item.status],
+      sql: "INSERT INTO items (id, title, description, status, rating) VALUES (?, ?, ?, ?, ?)",
+      args: [item.id, item.title, item.description, item.status, item.rating],
     });
   }
 }
 
 const databaseReady = initializeDatabase();
-
-app.get("/api/items", async (context) => {
-  await databaseReady;
-  const result = await database.execute(
-    "SELECT id, title, description, status FROM items ORDER BY id",
-  );
-  const items: Item[] = result.rows.map((row) => ({
-    id: Number(row.id),
-    title: String(row.title),
-    description: String(row.description),
-    status: row.status as Item["status"],
-  }));
-  return context.json(items);
-});
+const app = createApp(database, databaseReady);
 
 serve({
   fetch: app.fetch,

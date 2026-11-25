@@ -3,4 +3,5 @@ export interface Item {
   title: string;
   description: string;
   status: "Erledigt" | "In Arbeit" | "Offen";
+  rating: number;
 }
